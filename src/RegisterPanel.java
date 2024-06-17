@@ -1,14 +1,11 @@
-/*  Name: Văn Phú Minh Sang
-    ID: ITDSIU21112
- Purpose: A program applies cryptographic hashing to password verification.
-*/
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.Map;
 
 public class RegisterPanel extends JPanel {
@@ -43,9 +40,18 @@ public class RegisterPanel extends JPanel {
                     return;
                 }
 
-                // Hash the password and store it
-                String hashedPassword = hashPassword(password);
-                userPasswords.put(username, hashedPassword);
+                // Check if the username already exists
+                if (userPasswords.containsKey(username)) {
+                    JOptionPane.showMessageDialog(null, "Username already exists. Please choose a different username.", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                // Generate a salt
+                String salt = generateSalt();
+                // Hash the password with the salt
+                String hashedPassword = hashPassword(password, salt);
+                // Store the salt and the hashed password together
+                userPasswords.put(username, salt + ":" + hashedPassword);
 
                 JOptionPane.showMessageDialog(null, "Registration successful for user: " + username +
                         "\nYour hashed password is: " + hashedPassword);
@@ -53,10 +59,17 @@ public class RegisterPanel extends JPanel {
         });
     }
 
-    private String hashPassword(String password) {
+    private String generateSalt() {
+        byte[] salt = new byte[16];
+        new SecureRandom().nextBytes(salt);
+        return Base64.getEncoder().encodeToString(salt);
+    }
+
+    private String hashPassword(String password, String salt) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(password.getBytes());
+            String saltedPassword = salt + password;
+            byte[] hash = digest.digest(saltedPassword.getBytes());
             StringBuilder hexString = new StringBuilder();
             for (byte b : hash) {
                 String hex = Integer.toHexString(0xff & b);

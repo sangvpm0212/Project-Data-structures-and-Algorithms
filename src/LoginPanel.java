@@ -1,8 +1,3 @@
-/*  Name: Văn Phú Minh Sang
-    ID: ITDSIU21112
- Purpose: A program applies cryptographic hashing to password verification.
-*/
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -55,11 +50,30 @@ public class LoginPanel extends JPanel {
                 }
 
                 // Verify the password
-                String storedHashedPassword = userPasswords.get(username);
-                String enteredHashedPassword = hashPassword(password);
-                boolean loginSuccessful = storedHashedPassword != null && storedHashedPassword.equals(enteredHashedPassword);
+                String storedValue = userPasswords.get(username);
+                if (storedValue == null) {
+                    displayStoredHashedPassword.setText("N/A");
+                    displayEnteredHashedPassword.setText("N/A");
+                    comparisonResultLabel.setText("Password comparison: Not Matched");
+                    JOptionPane.showMessageDialog(null, "Login failed. Incorrect username or password.");
+                    return;
+                }
 
-                displayStoredHashedPassword.setText(storedHashedPassword != null ? storedHashedPassword : "N/A");
+                String[] parts = storedValue.split(":");
+                if (parts.length != 2) {
+                    displayStoredHashedPassword.setText("N/A");
+                    displayEnteredHashedPassword.setText("N/A");
+                    comparisonResultLabel.setText("Password comparison: Not Matched");
+                    JOptionPane.showMessageDialog(null, "Login failed. Incorrect username or password.");
+                    return;
+                }
+
+                String salt = parts[0];
+                String storedHashedPassword = parts[1];
+                String enteredHashedPassword = hashPassword(password, salt);
+                boolean loginSuccessful = storedHashedPassword.equals(enteredHashedPassword);
+
+                displayStoredHashedPassword.setText(storedHashedPassword);
                 displayEnteredHashedPassword.setText(enteredHashedPassword);
 
                 if (loginSuccessful) {
@@ -73,10 +87,11 @@ public class LoginPanel extends JPanel {
         });
     }
 
-    private String hashPassword(String password) {
+    private String hashPassword(String password, String salt) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(password.getBytes());
+            String saltedPassword = salt + password;
+            byte[] hash = digest.digest(saltedPassword.getBytes());
             StringBuilder hexString = new StringBuilder();
             for (byte b : hash) {
                 String hex = Integer.toHexString(0xff & b);
